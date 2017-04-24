@@ -1,4 +1,4 @@
-# ValueBot
+# Slack ValueBot
 
 Your solution when you have nothing to say but need to say something.
 
