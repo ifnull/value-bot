@@ -31,4 +31,4 @@ Wherever we collect sensitive information (such as credit card data), that infor
 
 While we use encryption to protect sensitive information transmitted online, we also protect your information offline. Only employees who need the information to perform a specific job (for example, billing or customer service) are granted access to personally identifiable information. The computers/servers in which we store personally identifiable information are kept in a secure environment.
 
-If you feel that we are not abiding by this privacy policy, you should contact us immediately via email at atticus1214+added-value-bot@gmail.com.
+If you feel that we are not abiding by this privacy policy, you should contact us immediately via email at atticus1214+valuebot@gmail.com.
