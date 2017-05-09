@@ -66,11 +66,19 @@ exports.slackValueAdder = (req, res) => {
     })
     .then((response) => {
       // Send the formatted message back to Slack
-      res.json({
-        response_type: 'in_channel',
-        text: generatePhrase(),
-        attachments: []
-      });
+      if(req.body.text == 'help') {
+        res.json({
+          response_type: 'in_channel',
+          text: "It is as simple as typing `/addvalue`. Type that command in any DM or channel and I'll generate some random jargon for you to use in your next meeting.",
+          attachments: []
+        });
+      } else {
+        res.json({
+          response_type: 'in_channel',
+          text: generatePhrase(),
+          attachments: []
+        });        
+      }
     })
     .catch((err) => {
       console.error(err);
