@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "actions-on-google": "^1.0.0",
-    "request": "^2.0.0"
+    "request": "^2.0.0",
+    "alexa-verifier": "^0.3.6"
   },
   "devDependencies": {
     "semistandard": "^9.1.0"

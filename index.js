@@ -6,6 +6,19 @@ const fs = require('fs')
 const request = require('request');
 const path = require('path')
 const NAME_ACTION = 'build_phrase';
+const chatbase_api_key = '******'
+const verifyRequest = (signatureCertUrl, signature, body) => {
+  return new Promise((resolve, reject) => {
+    verifier(signatureCertUrl, signature, body, (err) => {
+      if (err) {
+        return reject(err);
+      };
+
+      return resolve(body);
+    });
+  });
+};
+
 
 function generatePhrase(){
   var words, wordTypes, phrase, wordCount, rand, wordType, wt;
@@ -45,7 +58,7 @@ exports.actionsValueAdder = (req, res) => {
      q = '';
   }
   request.post('https://chatbase-area120.appspot.com/api/message').form({
-    "api_key": "",
+    "api_key": chatbase_api_key,
     "type": "user",
     "user_id": req.body.sessionId,
     "time_stamp": (new Date).getTime(),
@@ -81,6 +94,17 @@ exports.slackValueAdder = (req, res) => {
       }
     })
     .then((response) => {
+
+      var formData = {
+        api_key: chatbase_api_key,
+        type: "user",
+        user_id: req.body.user_id,
+        time_stamp: (new Date).getTime(),
+        platform: "Google-Home",
+        message: req.body.text,
+        not_handled: false
+      }
+
       // Send the formatted message back to Slack
       if(req.body.text == 'help') {
         res.json({
@@ -95,6 +119,9 @@ exports.slackValueAdder = (req, res) => {
           attachments: []
         });        
       }
+
+      request.post('https://chatbase-area120.appspot.com/api/message').form(formData);
+
     })
     .catch((err) => {
       console.error(err);
@@ -118,17 +145,20 @@ exports.alexaValueAdder = (req, res) => {
       }
     })
     .then((response) => {
-        res.json({
-          "version": "1.0",
-          "sessionAttributes": {},
-          "response": {
-            "outputSpeech": {
-              "type": "PlainText",
-              "text": generatePhrase()
-            },
-            "shouldEndSession": true
-          }
-        });
+      verifyRequest(req.headers.signaturecertchainurl, req.headers.signature, req.body);
+    })
+    .then((response) => {
+      res.json({
+        "version": "1.0",
+        "sessionAttributes": {},
+        "response": {
+          "outputSpeech": {
+            "type": "PlainText",
+            "text": generatePhrase()
+          },
+          "shouldEndSession": true
+        }
+      });
     })
     .catch((err) => {
       console.error(err);
