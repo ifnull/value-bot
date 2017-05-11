@@ -3,6 +3,7 @@
 process.env.DEBUG = 'actions-on-google:*';
 const Assistant = require('actions-on-google').ApiAiAssistant;
 const fs = require('fs')
+const request = require('request');
 const path = require('path')
 const NAME_ACTION = 'build_phrase';
 
@@ -37,6 +38,21 @@ function generatePhrase(){
 // [START ActionsValueAdder]
 exports.actionsValueAdder = (req, res) => {
   const assistant = new Assistant({request: req, response: res});
+  var q = '';
+  try{
+     q = req.body.result.resolvedQuery;
+  }catch(e){
+     q = '';
+  }
+  request.post('https://chatbase-area120.appspot.com/api/message').form({
+    "api_key": "",
+    "type": "user",
+    "user_id": req.body.sessionId,
+    "time_stamp": (new Date).getTime(),
+    "platform": "google-home",
+    "message": q,
+    "not_handled": true
+  });
 
   function makePhrase (assistant) {
     assistant.tell('<speak>'
@@ -88,5 +104,39 @@ exports.slackValueAdder = (req, res) => {
 
 };
 // [END SlackValueAdder]
+
+
+// [START AlexaValueAdder]
+exports.alexaValueAdder = (req, res) => {
+
+  return Promise.resolve()
+    .then(() => {
+      if (req.method !== 'POST') {
+        const error = new Error('Only POST requests are accepted');
+        error.code = 405;
+        throw error;
+      }
+    })
+    .then((response) => {
+        res.json({
+          "version": "1.0",
+          "sessionAttributes": {},
+          "response": {
+            "outputSpeech": {
+              "type": "PlainText",
+              "text": generatePhrase()
+            },
+            "shouldEndSession": true
+          }
+        });
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(err.code || 500).send(err);
+      return Promise.reject(err);
+    });
+
+};
+// [END AlexaValueAdder]
 
 
