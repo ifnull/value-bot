@@ -6,19 +6,8 @@ const fs = require('fs')
 const request = require('request');
 const path = require('path')
 const NAME_ACTION = 'build_phrase';
-const chatbase_api_key = '******'
-const verifyRequest = (signatureCertUrl, signature, body) => {
-  return new Promise((resolve, reject) => {
-    verifier(signatureCertUrl, signature, body, (err) => {
-      if (err) {
-        return reject(err);
-      };
-
-      return resolve(body);
-    });
-  });
-};
-
+const chatbase_api_key = '****'
+const verifier = require('alexa-verifier')
 
 function generatePhrase(){
   var words, wordTypes, phrase, wordCount, rand, wordType, wt;
@@ -51,26 +40,30 @@ function generatePhrase(){
 // [START ActionsValueAdder]
 exports.actionsValueAdder = (req, res) => {
   const assistant = new Assistant({request: req, response: res});
+
   var q = '';
   try{
      q = req.body.result.resolvedQuery;
   }catch(e){
      q = '';
   }
-  request.post('https://chatbase-area120.appspot.com/api/message').form({
-    "api_key": chatbase_api_key,
-    "type": "user",
-    "user_id": req.body.sessionId,
-    "time_stamp": (new Date).getTime(),
-    "platform": "google-home",
-    "message": q,
-    "not_handled": true
-  });
+
+  var formData = {
+    api_key: chatbase_api_key,
+    type: "user",
+    user_id: req.body.originalRequest.data.user.user_id,
+    time_stamp: (new Date).getTime(),
+    platform: "Google-Home",
+    message: q,
+    not_handled: false
+  }
+
+  request.post('https://chatbase-area120.appspot.com/api/message').form(formData);
 
   function makePhrase (assistant) {
     assistant.tell('<speak>'
     + generatePhrase()
-    + '<audio src="https://actions.google.com/sounds/v1/foley/jog_on_concrete.ogg"></audio>'
+    + '<audio src="https://actions.google.com/sounds/v1/office/click_continuous.ogg"></audio>'
     + '</speak>');
   }
 
@@ -100,7 +93,7 @@ exports.slackValueAdder = (req, res) => {
         type: "user",
         user_id: req.body.user_id,
         time_stamp: (new Date).getTime(),
-        platform: "Google-Home",
+        platform: "Slack",
         message: req.body.text,
         not_handled: false
       }
@@ -136,36 +129,57 @@ exports.slackValueAdder = (req, res) => {
 // [START AlexaValueAdder]
 exports.alexaValueAdder = (req, res) => {
 
-  return Promise.resolve()
-    .then(() => {
-      if (req.method !== 'POST') {
-        const error = new Error('Only POST requests are accepted');
-        error.code = 405;
-        throw error;
-      }
-    })
-    .then((response) => {
-      verifyRequest(req.headers.signaturecertchainurl, req.headers.signature, req.body);
-    })
-    .then((response) => {
-      res.json({
-        "version": "1.0",
-        "sessionAttributes": {},
-        "response": {
-          "outputSpeech": {
-            "type": "PlainText",
-            "text": generatePhrase()
-          },
-          "shouldEndSession": true
-        }
-      });
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(err.code || 500).send(err);
-      return Promise.reject(err);
-    });
+  var formData = {
+    api_key: chatbase_api_key,
+    type: "user",
+    user_id: req.body.session.user.userId,
+    time_stamp: (new Date).getTime(),
+    platform: "Alexa",
+    message: "",
+    not_handled: false
+  }
 
+  request.post('https://chatbase-area120.appspot.com/api/message').form(formData);
+
+  // req.body.timestamp = 0;
+  verifier(req.headers.signaturecertchainurl, req.headers.signature, JSON.stringify(req.body), function(err) {
+    if (err) {
+      return Promise.resolve()
+        .then((response) => {
+          res.status(401).json({ status: 'failure', reason: err });
+        })
+        .catch((err) => {
+          res.status(err.code || 500).send(err);
+          return Promise.reject(err);
+        });
+    } else {
+      return Promise.resolve()
+        .then(() => {
+          if (req.method !== 'POST') {
+            const error = new Error('Only POST requests are accepted');
+            error.code = 405;
+            throw error;
+          }
+        })
+        .then((response) => {
+          res.json({
+            "version": "1.0",
+            "sessionAttributes": {},
+            "response": {
+              "outputSpeech": {
+                "type": "PlainText",
+                "text": generatePhrase()
+              },
+              "shouldEndSession": true
+            }
+          });
+        })
+        .catch((err) => {
+          res.status(err.code || 500).send(err);
+          return Promise.reject(err);
+        });
+    }
+  });
 };
 // [END AlexaValueAdder]
 
